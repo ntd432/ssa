@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Sleep Optimization Dashboard</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; margin: 20px; background: #f5f5f5; }
+        .dashboard { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+        .card { background: white; border-radius: 10px; padding: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        h1 { color: #2c3e50; }
+        h2 { color: #3498db; margin-top: 0; }
+        .sleep-indicator { height: 20px; border-radius: 10px; background: linear-gradient(90deg, #3498db, #2ecc71); }
+        .time-display { font-size: 1.5em; font-weight: bold; color: #2c3e50; }
+        .alert { border-left: 5px solid #e74c3c; }
+        .good { border-left: 5px solid #2ecc71; }
+    </style>
+</head>
+<body>
+    <h1>Sleep Optimization Dashboard</h1>
+    
+    <div class="dashboard">
+        <div class="card">
+            <h2>Current Status</h2>
+            <div class="time-display" id="current-time">--:--</div>
+            <p>Mode: <span id="current-mode" class="status">Daytime</span></p>
+            <div class="sleep-indicator" id="sleep-progress"></div>
+            <p>Time to sleep: <span id="time-to-sleep">--</span></p>
+        </div>
+        
+        <div class="card" id="alert-card">
+            <h2>Alerts</h2>
+            <p>Late coffee: <span id="coffee-alert">No</span></p>
+            <p>Night activity: <span id="night-activity">None</span></p>
+            <p>Phone check-in: <span id="phone-status">Not required</span></p>
+        </div>
+        
+        <div class="card">
+            <h2>Environment</h2>
+            <p>Temperature: <span id="temperature">--</span>°C</p>
+            <p>Humidity: <span id="humidity">--</span>%</p>
+            <p>Light level: <span id="light-level">--</span>%</p>
+            <p>Fan: <span id="fan-status">Off</span></p>
+        </div>
+        
+        <div class="card">
+            <h2>Sleep Stats</h2>
+            <p>Last night's sleep: <span id="sleep-duration">--</span></p>
+            <p>Awakenings: <span id="awakenings">0</span></p>
+            <p>Sleep quality: <span id="sleep-quality">--</span></p>
+        </div>
+    </div>
+
+    <script>
+        function updateDashboard() {
+            // Update time display
+            const now = new Date();
+            document.getElementById('current-time').textContent = 
+                `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+            
+            // Simulate data - in a real app this would come from the API
+            const hours = now.getHours();
+            const isNight = hours >= 22 || hours < 7;
+            
+            // Update mode
+            document.getElementById('current-mode').textContent = 
+                isNight ? 'Night Mode' : hours >= 20 ? 'Wind Down' : 'Day Mode';
+            
+            // Update sleep progress indicator
+            if (hours >= 20 && hours < 22) {
+                const progress = ((hours - 20) * 60 + now.getMinutes()) / 120 * 100;
+                document.getElementById('sleep-progress').style.background = 
+                    `linear-gradient(90deg, #3498db ${progress}%, #f5f5f5 ${progress}%)`;
+                document.getElementById('time-to-sleep').textContent = 
+                    `${22 - hours} hour${22 - hours === 1 ? '' : 's'} remaining`;
+            } else {
+                document.getElementById('sleep-progress').style.background = 
+                    isNight ? '#3498db' : '#2ecc71';
+                document.getElementById('time-to-sleep').textContent = 
+                    isNight ? 'Sleep time' : 'Awake time';
+            }
+            
+            // Update alerts
+            document.getElementById('coffee-alert').textContent = 
+                hours >= 17 && hours < 20 ? 'Warning if pressed' : 'OK';
+            document.getElementById('night-activity').textContent = 
+                isNight ? 'Monitoring...' : 'N/A';
+            document.getElementById('phone-status').textContent = 
+                hours >= 22 ? 'Required' : 'Not required';
+            
+            // Update environment (simulated values)
+            document.getElementById('temperature').textContent = (20 + Math.sin(now.getHours() / 3) * 3).toFixed(1);
+            document.getElementById('humidity').textContent = (50 + Math.random() * 10).toFixed(0);
+            document.getElementById('light-level').textContent = 
+                isNight ? 0 : hours >= 20 ? (100 - ((hours - 20) * 30 + now.getMinutes() * 0.5)).toFixed(0) : 100;
+            document.getElementById('fan-status').textContent = 
+                document.getElementById('temperature').textContent > 23 ? 'On' : 'Off';
+            
+            // Update sleep stats (simulated)
+            if (hours >= 7 && hours < 9) {
+                document.getElementById('sleep-duration').textContent = '7h 42m';
+                document.getElementById('awakenings').textContent = '1';
+                document.getElementById('sleep-quality').textContent = 'Good';
+            }
+        }
+
+        // Update every second
+        setInterval(updateDashboard, 1000);
+        updateDashboard(); // Initial update
+    </script>
+</body>
+</html>

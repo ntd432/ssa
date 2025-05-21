@@ -19,18 +19,25 @@ class PhoneController:
         return t[3] * 3600 + t[4] * 60 + t[5]
 
     def display_message(self):
-        while not self.controlled:
-            current_time = self.get_current_time_seconds()
-            if current_time > CONFIGURED_SLEEP_TIME and not self.controlled:
-                self.display.display_two_lines("Time to sleep", "Put your phone here")
-            self.actuators.rgb_red()
-            self.actuators.buzzer_beep(220, 0.5)
-            self.check_phone()
-
-            if self.controlled and not self.rfid.is_card_present():
-                print("Phone removed, resetting controlled flag.")
-                self.controlled = False
+        while True:
+            for _ in range(10):
+                self.check_phone()
+                if self.controlled:
+                    break
+            while not self.controlled:
+                current_time = self.get_current_time_seconds()
+                if current_time > CONFIGURED_SLEEP_TIME and not self.controlled:
+                    self.display.display_two_lines("Time to sleep", "Put your phone here")
                 self.actuators.rgb_red()
+                self.actuators.buzzer_beep(220, 0.5)
+                self.check_phone()
+
+                # if self.controlled and not self.rfid.is_card_present():
+                #     print("Phone removed, resetting controlled flag.")
+                #     self.controlled = False
+                #     self.actuators.rgb_red()
+                
+                time.sleep(10)
     
     def check_phone(self):
         if self.rfid.check_card():
@@ -63,7 +70,7 @@ class PhoneController:
                 print(f"Denied for card: {card_id}")
                 self.actuators.rgb_off()
         else:
-            pass
+            self.controlled = False
 
     def enforce_routine(self):
         self.display_message()
@@ -74,7 +81,6 @@ def main_loop():
     
     while True:
         controller.enforce_routine()
-        #controller.controlled = False
         
 if __name__ == "__main__":
     main_loop()

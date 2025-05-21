@@ -692,6 +692,6 @@ if __name__ == "__main__":
     #controller.button_led_control_demo()
     #controller.rfid_access_control_demo()
     #controller.run_security_system()
-    #controller.coffee_tracker_demo()
+    controller.coffee_tracker_demo()
     #controller.window_button_control_demo()  # Run the window button control demo
-    controller.window_steam_control_demo()  # Run the window steam control demo
+    #controller.window_steam_control_demo()  # Run the window steam control demo

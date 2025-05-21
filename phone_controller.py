@@ -1,9 +1,9 @@
 from display_manager import DisplayManager
 from actuator_manager import ActuatorManager
 from rfid_manager import RFIDManager
-import time, threading
+import time
 
-CONFIGURED_SLEEP_TIME = 23 * 3600
+CONFIGURED_SLEEP_TIME = 11 * 3600
 
 class PhoneController:
     def __init__(self):
@@ -12,7 +12,7 @@ class PhoneController:
         self.controlled = False
         self.rfid = RFIDManager()
 
-    def get_current_time_seconds():
+    def get_current_time_seconds(self):
         """Get current time of day in seconds"""
         t = time.localtime()
         return t[3] * 3600 + t[4] * 60 + t[5]

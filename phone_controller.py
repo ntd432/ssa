@@ -25,8 +25,14 @@ class PhoneController:
                 self.display.display_two_lines("Time to sleep", "Put your phone here")
             self.actuators.rgb_red()
             self.actuators.buzzer_beep(220, 0.5)
-            time.sleep(0.1)
             self.check_phone()
+
+            if self.controlled and not self.rfid.is_card_present():
+                print("Phone removed, resetting controlled flag.")
+                self.controlled = False
+                self.actuators.rgb_red()
+            
+            time.sleep(0.1)
     
     def check_phone(self):
         if self.rfid.check_card():
@@ -62,7 +68,7 @@ class PhoneController:
                 time.sleep(1)
                 self.actuators.rgb_off()
         else:
-            self.controlled = False
+            pass
 
     def enforce_routine(self):
         self.display_message()

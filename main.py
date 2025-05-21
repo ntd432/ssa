@@ -15,11 +15,11 @@ COFFEE_CUTOFF = 17 * 3600  # 5 PM
 def initialize_system():
     """Initialize all system components"""
     dm.show_message("Sleep System\nStarting...")
-    sm.init()
-    am.init()
-    rm.init()
-    wm.init()
-    lc.init()
+    #sm.init()
+    #am.init()
+    #rm.init()
+    #wm.init()
+    #lc.init()
     dm.show_message("System Ready")
     print("Sleep optimization system initialized")
 

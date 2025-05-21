@@ -31,7 +31,7 @@ class PhoneController:
     def check_phone(self):
         if self.rfid.check_card():
             card_id = self.rfid.get_card_uid_sum()
-            self.display.display(f"Phone Detected: {card_id}")
+            self.display.display_text(f"Phone Detected: {card_id}")
             time.sleep(2)
             
             # Check if this is an authorized card
@@ -49,7 +49,6 @@ class PhoneController:
                 self.actuators.rgb_off()
                 
                 # Wait a moment to prevent multiple scans
-                time.sleep(0.5)
             else:
                 self.display.display_two_lines("Wrong phone", "Don't cheat")
                 self.controlled = False
@@ -74,6 +73,7 @@ def main_loop():
     
     while True:
         controller.enforce_routine()
+        controller.controlled = False
         
 if __name__ == "__main__":
     main_loop()

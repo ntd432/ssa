@@ -678,6 +678,38 @@ class SmartHomeController:
             self.actuators.buzzer_off()
             self.display.display_two_lines("Window Demo", "Stopped")
             print("Window steam control demo stopped")
+    
+    def simple_door_demo(self):
+        """Simple demo to test door open and close functions"""
+        print("Starting simple door demo")
+        self.display.display_two_lines("Door Demo", "Running...")
+        
+        try:
+            while True:
+                # Open door with left button
+                if self.sensors.is_button1_pressed():
+                    self.display.display_two_lines("Door Status", "Opening")
+                    self.actuators.door_open()
+                    self.actuators.rgb_green()
+                    self.actuators.buzzer_beep(880, 0.1)  # High beep
+                    time.sleep(0.5)  # Debounce delay
+                    self.actuators.rgb_off()
+                
+                # Close door with right button
+                if self.sensors.is_button2_pressed():
+                    self.display.display_two_lines("Door Status", "Closing")
+                    self.actuators.door_close()
+                    self.actuators.rgb_red()
+                    self.actuators.buzzer_beep(440, 0.1)  # Low beep
+                    time.sleep(0.5)  # Debounce delay
+                    self.actuators.rgb_off()
+                
+                time.sleep(0.1)  # Small delay
+                
+        except KeyboardInterrupt:
+            self.actuators.door_close()
+            self.display.display_two_lines("Door Demo", "Stopped")
+            print("Door demo stopped")
 
 # Example usage
 if __name__ == "__main__":
@@ -695,3 +727,4 @@ if __name__ == "__main__":
     controller.coffee_tracker_demo()
     #controller.window_button_control_demo()  # Run the window button control demo
     #controller.window_steam_control_demo()  # Run the window steam control demo
+    #controller.simple_door_demo()  # Run the simple door demo

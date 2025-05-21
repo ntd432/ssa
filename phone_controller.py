@@ -20,7 +20,10 @@ class PhoneController:
 
     def display_message(self):
         while True:
-            self.check_phone()
+            for _ in range(10):
+                self.check_phone()
+                if self.controlled:
+                    break
             while not self.controlled:
                 current_time = self.get_current_time_seconds()
                 if current_time > CONFIGURED_SLEEP_TIME and not self.controlled:

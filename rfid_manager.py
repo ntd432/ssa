@@ -206,6 +206,22 @@ class RFIDManager:
                 return None
                 
             time.sleep(0.1)  # Short delay to prevent tight loop
+    
+    def is_card_present(self):
+        """
+        Check if a card is currently present in the field (used for presence monitoring).
+
+        Returns:
+            bool: True if a card is present, False otherwise
+        """
+        if not self.is_connected:
+            return False
+
+        try:
+            return self.rc522.PICC_IsNewCardPresent() and self.rc522.PICC_ReadCardSerial()
+        except Exception as e:
+            print(f"Error detecting card presence: {e}")
+            return False
 
 # Simple demo to test the RFID manager with the MFRC522 I2C interface
 def rfid_demo():

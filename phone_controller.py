@@ -1,4 +1,5 @@
 from display_manager import DisplayManager
+from actuator_manager import ActuatorManager
 from rfid_manager import RFIDManager
 import time, threading
 
@@ -7,6 +8,7 @@ CONFIGURED_SLEEP_TIME = 23 * 3600
 class PhoneController:
     def __init__(self):
         self.display = DisplayManager()
+        self.actuators = ActuatorManager()
         self.controlled = False
         self.rfid = RFIDManager()
 
@@ -58,11 +60,8 @@ class PhoneController:
                 self.actuators.rgb_off()
 
     def enforce_routine(self):
-        t1 = threading.Thread(target=self.display_message)
-        t2 = threading.Thread(target=self.check_phone)
-
-        t1.start()
-        t2.start()
+        self.display_message()
+        self.check_phone()
 
 def main_loop():
     """Main system loop"""

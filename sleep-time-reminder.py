@@ -1,15 +1,16 @@
 # This file sends a reminder to the user to go to bed at a specified time. It uses the `datetime` module to get the current time and the `smtplib` module to send an email reminder. The script runs in an infinite loop, checking the current time every minute and sending an email if it's time to go to bed.
 
 import time
-from display_manager import DisplayManager as display_manager
+from display_manager import DisplayManager
 
 def display_message(message):
     # Function to display a message (e.g., on a screen or console)
-    display_manager.display_scroolling_text(message)  # Replace with actual display logic
+    
+    DisplayManager().display_scrolling_text(message)  # Replace with actual display logic
 
 def dim_led_light():
     # Function to dim the LED light
-    display_manager.display_text("Dimming LED light...")  # Replace with actual LED control logic
+    DisplayManager().display_text("Dimming LED light...")  # Replace with actual LED control logic
 
 def simulate_time():
     # Simulated time starts at 10:00 PM (22:00)

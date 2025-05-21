@@ -9,17 +9,12 @@ PIN_SERVO = 13      # Servo motor PWM
 PIN_NEOPIXEL = 26   # Neopixel RGB LEDs
 PIN_MOTOR_A = 19    # Motor driver input A
 PIN_MOTOR_B = 18    # Motor driver input B
-PIN_WINDOW = 5      # Window servo PWM pin (uses pin 5 as in your example)
 
 # Constants
 SERVO_FREQ = 50     # Standard servo frequency (50Hz)
 SERVO_0_DUTY = 25   # Duty cycle for 0° position
 SERVO_90_DUTY = 77  # Duty cycle for 90° position
 SERVO_180_DUTY = 128 # Duty cycle for 180° position
-
-WINDOW_FREQ = 50    # Standard servo frequency (50Hz)
-WINDOW_CLOSED_DUTY = 100  # Duty cycle for closed window (from your example)
-WINDOW_OPEN_DUTY = 46     # Duty cycle for open window (from your example)
 
 NUM_PIXELS = 4      # Number of RGB LEDs in neopixel strip
 
@@ -40,11 +35,7 @@ class ActuatorManager:
         self.motor_a.duty(0)  # Start with motor stopped
         self.motor_b.duty(0)
         
-        # Initialize window servo
-        self.window = PWM(Pin(PIN_WINDOW))
-        self.window.freq(WINDOW_FREQ)
-        self.window.duty(WINDOW_CLOSED_DUTY)  # Start with window closed
-        print("Window servo initialized")
+        print("Actuator manager initialized")
     
     # LED methods
     def led_on(self):
@@ -119,36 +110,6 @@ class ActuatorManager:
     def servo_180_degrees(self):
         """Move servo to 180 degrees position"""
         self.servo.duty(SERVO_180_DUTY)
-    
-    # Window methods
-    def window_open(self):
-        """Open the window fully"""
-        self.window.duty(WINDOW_OPEN_DUTY)
-        print("Window opened")
-    
-    def window_close(self):
-        """Close the window fully"""
-        self.window.duty(WINDOW_CLOSED_DUTY)
-        print("Window closed")
-    
-    def window_set_position(self, percent):
-        """Set window opening position as a percentage
-        
-        Args:
-            percent: Opening percentage (0-100%)
-                0% = fully closed
-                100% = fully open
-        """
-        # Ensure percent is within valid range
-        percent = max(0, min(100, percent))
-        
-        # Map percentage to duty cycle (reversed since OPEN is lower than CLOSED in your example)
-        # 0% = WINDOW_CLOSED_DUTY, 100% = WINDOW_OPEN_DUTY
-        duty = WINDOW_CLOSED_DUTY - ((percent/100) * (WINDOW_CLOSED_DUTY - WINDOW_OPEN_DUTY))
-        
-        # Set the servo position
-        self.window.duty(int(duty))
-        print(f"Window position set to {percent}%")
     
     # Neopixel RGB LED methods
     def rgb_set_all(self, r, g, b, brightness=100):
@@ -228,14 +189,3 @@ class ActuatorManager:
         """Stop the motor"""
         self.motor_a.duty(0)
         self.motor_b.duty(0)
-    
-    # Door methods
-    def door_open(self):
-        """Fully open the door (180 degrees)"""
-        self.servo.duty(SERVO_180_DUTY)  # 128
-        print("Door opened")
-    
-    def door_close(self):
-        """Fully close the door (0 degrees)"""
-        self.servo.duty(SERVO_0_DUTY)  # 25
-        print("Door closed")

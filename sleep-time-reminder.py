@@ -2,6 +2,7 @@
 
 import time
 from display_manager import DisplayManager
+from actuator_manager import ActuatorManager
 
 def display_message(message):
     # Function to display a message (e.g., on a screen or console)
@@ -10,7 +11,9 @@ def display_message(message):
 
 def dim_led_light():
     # Function to dim the LED light
-    DisplayManager().display_text("Dimming LED light...")  # Replace with actual LED control logic
+    
+    ActuatorManager().rgb_set_all(255, 255, 255, brightness=30)  # Dim to 50% brightness
+    ActuatorManager().rgb_white()
 
 def simulate_time():
     # Simulated time starts at 10:00 PM (22:00)
@@ -34,11 +37,11 @@ def send_sleep_reminder():
         print(f"Simulated Time: {hour:02}:{minute:02}")  # Display the simulated time for debugging
 
         if (hour == reminder_hour and minute == reminder_minute):
-            display_message("Reminder: It's time to start preparing for bed!")
+            display_message("Time to start preparing for bed!")
         elif (hour == dim_hour and minute == dim_minute):
             dim_led_light()
         elif (hour == sleep_hour and minute == sleep_minute):
-            display_message("It's 11:00 PM. Time to go to bed!")
+            display_message("It's time to go to bed!")
             break  # Exit the loop after sending the final reminder
 
         time.sleep(1)  # Simulate the passage of 10 minutes in 1 second

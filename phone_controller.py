@@ -4,7 +4,7 @@ from rfid_manager import RFIDManager
 import time
 
 CONFIGURED_SLEEP_TIME = 11 * 3600
-CARD_ID_LISTS = [668, 383]
+CARD_ID_DICT = {668: "James", 383: "Eric"}
 
 class PhoneController:
     def __init__(self):
@@ -27,17 +27,16 @@ class PhoneController:
             self.actuators.buzzer_beep(220, 0.5)
             time.sleep(0.1)
             self.check_phone()
-            
     
     def check_phone(self):
         if self.rfid.check_card():
             card_id = self.rfid.get_card_uid_sum()
-            self.display.display_two_lines("Phone Detected", str(card_id))
+            self.display.display(f"Phone Detected: {card_id}")
             time.sleep(2)
             
             # Check if this is an authorized card
-            if card_id in CARD_ID_LISTS:
-                name = self.rfid.get_authorized_card_name()
+            if card_id in CARD_ID_DICT.keys():
+                name = CARD_ID_DICT[card_id]
                 self.display.display_two_lines(f"Good night {name if name else ''}", "See you tomorrow")
                 
                 # Visual and audio feedback
@@ -47,12 +46,13 @@ class PhoneController:
                 print(f"Done for card: {card_id}")
                 self.controlled = True
                 self.actuators.buzzer_off()
+                self.actuators.rgb_off()
                 
                 # Wait a moment to prevent multiple scans
                 time.sleep(0.5)
             else:
                 self.display.display_two_lines("Wrong phone", "Don't cheat")
-                
+                self.controlled = False
                 # Visual and audio feedback for denied access
                 self.actuators.rgb_red()
                 for _ in range(2):  # Two quick error beeps
@@ -62,6 +62,8 @@ class PhoneController:
                 print(f"Denied for card: {card_id}")
                 time.sleep(1)
                 self.actuators.rgb_off()
+        else:
+            self.controlled = False
 
     def enforce_routine(self):
         self.display_message()

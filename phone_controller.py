@@ -26,16 +26,19 @@ class PhoneController:
             self.actuators.rgb_red()
             self.actuators.buzzer_beep(220, 0.5)
             time.sleep(0.1)
+            self.check_phone()
+            
     
     def check_phone(self):
         if self.rfid.check_card():
             card_id = self.rfid.get_card_uid_sum()
-            self.display.display_two_lines("Phone Detected", card_id[:16])
+            self.display.display_two_lines("Phone Detected", str(card_id))
+            time.sleep(2)
             
             # Check if this is an authorized card
             if card_id in CARD_ID_LISTS:
                 name = self.rfid.get_authorized_card_name()
-                self.display.display_two_lines(f"Good night {name}", "See you tomorrow")
+                self.display.display_two_lines(f"Good night {name if name else ''}", "See you tomorrow")
                 
                 # Visual and audio feedback
                 self.actuators.rgb_green()
@@ -62,7 +65,6 @@ class PhoneController:
 
     def enforce_routine(self):
         self.display_message()
-        self.check_phone()
 
 def main_loop():
     """Main system loop"""

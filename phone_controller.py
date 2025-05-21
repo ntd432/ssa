@@ -31,14 +31,11 @@ class PhoneController:
                 print("Phone removed, resetting controlled flag.")
                 self.controlled = False
                 self.actuators.rgb_red()
-            
-            time.sleep(0.1)
     
     def check_phone(self):
         if self.rfid.check_card():
             card_id = self.rfid.get_card_uid_sum()
             self.display.display_text(f"Phone Detected: {card_id}")
-            time.sleep(2)
             
             # Check if this is an authorized card
             if card_id in CARD_ID_DICT.keys():
@@ -62,10 +59,8 @@ class PhoneController:
                 self.actuators.rgb_red()
                 for _ in range(2):  # Two quick error beeps
                     self.actuators.buzzer_beep(220, 0.2)
-                    time.sleep(0.1)
                 
                 print(f"Denied for card: {card_id}")
-                time.sleep(1)
                 self.actuators.rgb_off()
         else:
             pass
@@ -79,7 +74,7 @@ def main_loop():
     
     while True:
         controller.enforce_routine()
-        controller.controlled = False
+        #controller.controlled = False
         
 if __name__ == "__main__":
     main_loop()

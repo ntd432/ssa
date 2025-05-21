@@ -19,12 +19,12 @@ class SmartHomeController:
         self.light = LightManager()  # Add the light manager
         
         # Display welcome message
-        self.display.display_two_lines("Smart Home", "System Ready")
-        time.sleep(2)
+        #self.display.display_two_lines("Smart Home", "System Ready")
+        #time.sleep(2)
         
         # Add some test authorized cards (replace with real card IDs)
-        self.rfid.add_authorized_card("12345678", "Admin Card")
-        self.rfid.add_authorized_card("87654321", "Guest Card")
+        #self.rfid.add_authorized_card("12345678", "Admin Card")
+        #self.rfid.add_authorized_card("87654321", "Guest Card")
         
         print("Smart Home Controller initialized")
     
@@ -500,216 +500,101 @@ class SmartHomeController:
             self.actuators.servo_angle(0)
             self.display.display_two_lines("Door Test", "Stopped")
             print("Door test stopped")
-
-    def window_button_control_demo(self):
-        """Demo function for controlling a window using the right button
-        
-        The window will toggle between fully open and fully closed positions
-        each time Button 2 (right button) is pressed.
-        """
-        print("Starting window button control demo")
-        self.display.display_two_lines("Window Control", "Press right btn")
-        
-        # Initial state
-        window_open = False
-        
-        try:
-            while True:
-                # Check if button 2 (right button) is pressed
-                if self.sensors.is_button2_pressed():
-                    # Toggle window state
-                    window_open = not window_open
-                    
-                    if window_open:
-                        # Open the window
-                        self.display.display_two_lines("Window Status", "Opening...")
-                        self.actuators.window_open(100)  # Open to 100%
-                        self.actuators.rgb_green()  # Visual indicator - green
-                        self.actuators.buzzer_beep(440, 0.2)  # Audible confirmation
-                        self.display.display_two_lines("Window Status", "Fully Open")
-                    else:
-                        # Close the window
-                        self.display.display_two_lines("Window Status", "Closing...")
-                        self.actuators.window_close()  # Fully close
-                        self.actuators.rgb_blue()  # Visual indicator - blue
-                        self.actuators.buzzer_beep(220, 0.2)  # Audible confirmation
-                        self.display.display_two_lines("Window Status", "Closed")
-                    
-                    # Wait for button release to prevent multiple toggles
-                    while self.sensors.is_button2_pressed():
-                        time.sleep(0.01)
-                    
-                    # Turn off the RGB indicator after a moment
-                    time.sleep(1)
-                    self.actuators.rgb_off()
-                    
-                    # Restore status display
-                    if window_open:
-                        self.display.display_two_lines("Window Open", "Press to close")
-                    else:
-                        self.display.display_two_lines("Window Closed", "Press to open")
-                        
-                # Small delay to prevent tight loop
-                time.sleep(0.1)
-                
-        except KeyboardInterrupt:
-            # Clean up on exit
-            self.actuators.window_close()  # Ensure window is closed
-            self.actuators.rgb_off()
-            self.actuators.buzzer_off()
-            self.display.display_two_lines("Window Demo", "Stopped")
-            print("Window button control demo stopped")
     
-    def window_steam_control_demo(self):
-        """Demo function for controlling a window based on steam/humidity detection
-        and manual control using the right button.
+    def window_test_demo(self):
+        """Test the window servo by moving it through various positions"""
         
-        The window will open automatically when steam is detected and can be
-        manually controlled with Button 2 (right button).
-        """
-        print("Starting window steam control demo")
-        self.display.display_two_lines("Window Control", "Steam Detection")
+        print("Starting window test demo")
+        self.display.display_two_lines("Window Test", "Running...")
         
-        # Initial state
-        window_open = False
-        auto_mode = True  # Start in automatic mode
+        try:
+            # Close window (0%)
+            self.display.display_two_lines("Window Test", "Closing window")
+            self.actuators.window_close()
+            print("Window closed")
+            time.sleep(2)
+            
+            # Open window partially (30%)
+            self.display.display_two_lines("Window Test", "Ventilation 30%")
+            self.actuators.window_open(30)
+            print("Window at 30%")
+            time.sleep(2)
+            
+            # Open window halfway (50%)
+            self.display.display_two_lines("Window Test", "Opening 50%")
+            self.actuators.window_open(50)
+            print("Window at 50%")
+            time.sleep(2)
+            
+            # Open window fully (100%)
+            self.display.display_two_lines("Window Test", "Opening 100%")
+            self.actuators.window_open(100)
+            print("Window fully open")
+            time.sleep(2)
+            
+            # Test temperature-based control
+            self.display.display_two_lines("Window Test", "Temp control")
+            
+            # Simulate different temperatures
+            temp_scenarios = [
+                (18, "Cold - Closed"),
+                (23, "Mild - Venting"),
+                (26, "Warm - Half Open"),
+                (30, "Hot - Fully Open")
+            ]
+            
+            for temp, desc in temp_scenarios:
+                percentage = self.actuators.window_control_by_temperature(temp)
+                self.display.display_two_lines(f"{desc}", f"Temp: {temp}°C ({percentage}%)")
+                time.sleep(2)
+            
+            # Close window at the end
+            self.display.display_two_lines("Window Test", "Test Complete")
+            self.actuators.window_close()
+            time.sleep(1)
+            
+        except KeyboardInterrupt:
+            # Return window to closed position when stopping
+            self.actuators.window_close()
+            self.display.display_two_lines("Window Test", "Stopped")
+            print("Window test stopped")
+    
+    def climate_control_demo(self):
+        """Demonstrate automatic climate control using temperature and window/fan"""
         
-        # Setup ADC for steam/humidity sensor
-        from machine import ADC, Pin
-        steam_sensor = ADC(Pin(34))  # Sound/steam sensor on pin 34
-        steam_sensor.atten(ADC.ATTN_11DB)  # Configure attenuation for full range
-        steam_sensor.width(ADC.WIDTH_12BIT)  # 12-bit resolution (0-4095)
-        
-        # Threshold for steam detection (adjust as needed)
-        STEAM_THRESHOLD_VOLTAGE = 0.6  # Voltage threshold from example
+        print("Starting climate control demo")
+        self.display.display_two_lines("Climate Control", "Demo Running")
         
         try:
             while True:
-                # Read steam sensor
-                sensor_value = steam_sensor.read()
-                voltage = sensor_value / 4095.0 * 3.3  # Convert to voltage
+                # Read current temperature and humidity
+                temp, humidity = self.sensors.read_temperature_humidity()
                 
-                # Check if Button 2 (right button) is pressed to toggle mode
-                if self.sensors.is_button2_pressed():
-                    auto_mode = not auto_mode
-                    
-                    if auto_mode:
-                        self.display.display_two_lines("Auto Mode", "Steam Detection")
-                        self.actuators.rgb_blue(30)  # Dim blue for auto mode
-                    else:
-                        self.display.display_two_lines("Manual Mode", "Press to toggle")
-                        self.actuators.rgb_green(30)  # Dim green for manual mode
-                    
-                    # Wait for button release
-                    while self.sensors.is_button2_pressed():
-                        time.sleep(0.01)
-                    
-                    time.sleep(0.5)  # Debounce delay
+                # Set window position based on temperature
+                window_percent = self.actuators.window_control_by_temperature(temp, humidity)
                 
-                # In auto mode, detect steam and control window
-                if auto_mode:
-                    # Display current sensor value
-                    self.display.display_two_lines(
-                        f"Steam: {voltage:.2f}V",
-                        "Auto Mode ON" if auto_mode else "Manual Mode"
-                    )
-                    
-                    # Check steam level
-                    if voltage > STEAM_THRESHOLD_VOLTAGE and not window_open:
-                        # Steam detected - open window
-                        self.actuators.window_open(80)  # Open to 80%
-                        window_open = True
-                        self.actuators.rgb_green()  # Green when window opens
-                        self.actuators.buzzer_beep(440, 0.2)  # Alert sound
-                        self.display.display_two_lines("Steam Detected!", "Window Opening")
-                        time.sleep(1)
-                        self.actuators.rgb_off()
-                        
-                    elif voltage <= STEAM_THRESHOLD_VOLTAGE and window_open:
-                        # Steam cleared - close window
-                        self.actuators.window_close()
-                        window_open = False
-                        self.actuators.rgb_blue()  # Blue when window closes
-                        self.actuators.buzzer_beep(220, 0.2)  # Alert sound
-                        self.display.display_two_lines("Steam Cleared", "Window Closing")
-                        time.sleep(1)
-                        self.actuators.rgb_off()
-                
-                # In manual mode, toggle window with right button
+                # Set fan speed based on temperature
+                if hasattr(self.actuators, 'fan_available') and self.actuators.fan_available:
+                    fan_speed = self.actuators.fan_auto_mode(temp)
                 else:
-                    # Display current window state
-                    self.display.display_two_lines(
-                        "Window: " + ("Open" if window_open else "Closed"),
-                        f"Steam: {voltage:.2f}V"
-                    )
-                    
-                    # Check if Button 2 is pressed again (for toggling window in manual mode)
-                    if self.sensors.is_button2_pressed():
-                        # Toggle window state
-                        window_open = not window_open
-                        
-                        if window_open:
-                            # Open the window
-                            self.actuators.window_open(100)  # Open to 100%
-                            self.actuators.rgb_green()  # Green when window opens
-                            self.actuators.buzzer_beep(440, 0.2)  # Alert sound
-                            self.display.display_two_lines("Manual Control", "Window Opening")
-                        else:
-                            # Close the window
-                            self.actuators.window_close()
-                            self.actuators.rgb_blue()  # Blue when window closes
-                            self.actuators.buzzer_beep(220, 0.2)  # Alert sound
-                            self.display.display_two_lines("Manual Control", "Window Closing")
-                        
-                        # Wait for button release
-                        while self.sensors.is_button2_pressed():
-                            time.sleep(0.01)
-                        
-                        time.sleep(0.5)  # Debounce delay
-                        self.actuators.rgb_off()
+                    fan_speed = 0
                 
-                # Short delay between sensor readings
-                time.sleep(0.5)
+                # Update display
+                self.display.display_two_lines(
+                    f"Temp: {temp:.1f}°C {humidity:.0f}%",
+                    f"Win: {window_percent}% Fan: {fan_speed}%"
+                )
+                
+                # Wait before next update
+                time.sleep(5)
                 
         except KeyboardInterrupt:
-            # Clean up on exit
-            self.actuators.window_close()  # Ensure window is closed
-            self.actuators.rgb_off()
-            self.actuators.buzzer_off()
-            self.display.display_two_lines("Window Demo", "Stopped")
-            print("Window steam control demo stopped")
-    
-    def simple_door_demo(self):
-        """Simple demo to test door open and close functions"""
-        print("Starting simple door demo")
-        self.display.display_two_lines("Door Demo", "Running...")
-        
-        try:
-            while True:
-                # Open door with left button
-                if self.sensors.is_button1_pressed():
-                    self.display.display_two_lines("Door Status", "Opening")
-                    self.actuators.door_open()
-                    self.actuators.rgb_green()
-                    self.actuators.buzzer_beep(880, 0.1)  # High beep
-                    time.sleep(0.5)  # Debounce delay
-                    self.actuators.rgb_off()
-                
-                # Close door with right button
-                if self.sensors.is_button2_pressed():
-                    self.display.display_two_lines("Door Status", "Closing")
-                    self.actuators.door_close()
-                    self.actuators.rgb_red()
-                    self.actuators.buzzer_beep(440, 0.1)  # Low beep
-                    time.sleep(0.5)  # Debounce delay
-                    self.actuators.rgb_off()
-                
-                time.sleep(0.1)  # Small delay
-                
-        except KeyboardInterrupt:
-            self.actuators.door_close()
-            self.display.display_two_lines("Door Demo", "Stopped")
-            print("Door demo stopped")
+            # Clean up
+            self.actuators.window_close()
+            if hasattr(self.actuators, 'fan_available') and self.actuators.fan_available:
+                self.actuators.fan_set_speed(0)
+            self.display.display_two_lines("Climate Control", "Demo Stopped")
+            print("Climate control demo stopped")
 
 # Example usage
 if __name__ == "__main__":
@@ -725,6 +610,4 @@ if __name__ == "__main__":
     #controller.rfid_access_control_demo()
     #controller.run_security_system()
     controller.coffee_tracker_demo()
-    #controller.window_button_control_demo()  # Run the window button control demo
-    #controller.window_steam_control_demo()  # Run the window steam control demo
-    #controller.simple_door_demo()  # Run the simple door demo
+    #controller.door_test_continuous()

@@ -13,7 +13,6 @@ def dim_led_light():
     # Function to dim the LED light
     
     ActuatorManager().rgb_set_all(255, 255, 255, brightness=30)  # Dim to 50% brightness
-    ActuatorManager().rgb_white()
 
 def simulate_time():
     # Simulated time starts at 10:00 PM (22:00)
@@ -31,6 +30,8 @@ def send_sleep_reminder():
     dim_hour, dim_minute = 22, 50  # 10:50 PM
     sleep_hour, sleep_minute = 23, 0  # 11:00 PM
 
+    ActuatorManager().rgb_white()
+    
     simulated_clock = simulate_time()
 
     for hour, minute in simulated_clock:

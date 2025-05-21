@@ -4,6 +4,7 @@ from rfid_manager import RFIDManager
 import time
 
 CONFIGURED_SLEEP_TIME = 11 * 3600
+CARD_ID_LISTS = [668, 383]
 
 class PhoneController:
     def __init__(self):
@@ -28,11 +29,11 @@ class PhoneController:
     
     def check_phone(self):
         if self.rfid.check_card():
-            card_id = self.rfid.get_card_id()
+            card_id = self.rfid.get_card_uid_sum()
             self.display.display_two_lines("Phone Detected", card_id[:16])
             
             # Check if this is an authorized card
-            if self.rfid.is_card_authorized():
+            if card_id in CARD_ID_LISTS:
                 name = self.rfid.get_authorized_card_name()
                 self.display.display_two_lines(f"Good night {name}", "See you tomorrow")
                 

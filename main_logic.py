@@ -25,11 +25,11 @@ class SmartSleepAssistant:
         self.last_update_time = self.simulation_start_time
         
         # Set time parameters (in seconds since midnight)
-        self.sleep_time = 22 * 3600  # 10 PM
-        self.wake_time = 7 * 3600    # 7 AM
-        self.pre_sleep_time = self.sleep_time - 3600  # 1 hour before sleep time
-        self.pre_wake_time = self.wake_time - 3600    # 1 hour before wake time
-        
+        self.sleep_time = 22 * 3600        # 10 PM - night mode starts
+        self.wake_time = 6 * 3600          # 6 AM - night mode ends
+        self.pre_sleep_time = 20 * 3600 + 30 * 60  # 8:30 PM - 1.5 hours before sleep
+        self.pre_wake_time = 4 * 3600 + 30 * 60    # 4:30 AM - 1.5 hours before wake
+    
         # Coffee cutoff time
         self.coffee_cutoff_soft = 17 * 3600  # 5 PM - warning
         self.coffee_cutoff_hard = 18 * 3600  # 6 PM - no coffee allowed
@@ -43,6 +43,9 @@ class SmartSleepAssistant:
         self.coffee_warning_active = False
         self.coffee_warning_time = 0
         self.coffee_double_confirm_timeout = 10  # Seconds to confirm coffee after warning
+        
+        # Time advancement state
+        self.time_advancement_phase = 0  # To track which advancement phase we're in
         
         # Initialize display
         if self.use_simulated_time:
@@ -169,7 +172,7 @@ class SmartSleepAssistant:
             if not self.controller.rfid.is_card_present():
                 # Alert user to place phone on the RFID sensor
                 if not self.night_mode:
-                    self.controller.display.display_two_lines("Phone Missing", "Place on sensor")
+                    self.controller.display.display_two_lines("Time to sleep", "Place phone here")
                     self.controller.actuators.rgb_red()
                     self.controller.actuators.buzzer_beep(220, 0.5)
                 return False
@@ -178,11 +181,25 @@ class SmartSleepAssistant:
                 if self.controller.rfid.check_card():
                     card_id = self.controller.rfid.get_card_uid_sum()
                     if self.controller.rfid.is_card_authorized():
-                        # Phone is authorized, night mode can begin
+                        # Phone detected and authorized - prepare for night mode
                         if not self.night_mode:
+                            self.controller.display.display_two_lines("Phone detected", "Securing home...")
+                            self.controller.actuators.rgb_green()
+                            self.controller.actuators.buzzer_beep(660, 0.2)
+                            time.sleep(0.5)
+                            # Activate night mode (which will close door and window)
                             self.activate_night_mode()
                         return True
-        
+                    else:
+                        # Phone detected but not authorized
+                        self.controller.display.display_two_lines("Unknown phone", "Not authorized")
+                        self.controller.actuators.rgb_red()
+                        self.controller.actuators.buzzer_beep(220, 0.2)
+                        time.sleep(0.2)
+                        self.controller.actuators.buzzer_beep(220, 0.2)
+                        time.sleep(1)
+                        return False
+    
         return self.night_mode
     
     def check_coffee_request(self):
@@ -245,12 +262,22 @@ class SmartSleepAssistant:
         print("Activating night mode")
         self.night_mode = True
         
-        # Display message
-        self.controller.display.display_two_lines("Night Mode", "Activated")
+        # Display message with wake-up time
+        wake_time_formatted = self.format_time(self.wake_time)
+        self.controller.display.display_two_lines("Night Mode", 
+                                               f"Wake: {wake_time_formatted}")
         
-        # Lock window and door
-        self.controller.actuators.door_close()
+        # Security measures: First close window and door to secure the home
+        print("Securing home - closing window and door")
+        self.controller.display.display_two_lines("Securing Home", "Please wait...")
+        
+        # Ensure the window is fully closed
         self.controller.actuators.window_close()
+        time.sleep(0.5)  # Short delay between operations
+        
+        # Ensure the door is fully closed and locked
+        self.controller.actuators.door_close()
+        time.sleep(0.5)  # Short delay between operations
         
         # Turn off lights
         self.light.lights_off()
@@ -259,11 +286,14 @@ class SmartSleepAssistant:
         if hasattr(self.controller.actuators, 'fan_available') and self.controller.actuators.fan_available:
             self.controller.actuators.fan_set_speed(0)
         
-        # Visual and audio feedback
+        # Visual and audio feedback to confirm night mode activation
         self.controller.actuators.rgb_blue(30)  # Dim blue for night
         self.controller.actuators.buzzer_beep(880, 0.2)
         time.sleep(0.2)
         self.controller.actuators.buzzer_beep(660, 0.2)
+        
+        # Confirmation message
+        self.controller.display.display_two_lines("Home Secured", "Sleep well!")
         time.sleep(2)
         
         # Initial sleep environment optimization
@@ -384,10 +414,14 @@ class SmartSleepAssistant:
         
         # Check if it's pre-sleep time (between 1 hour before sleep and sleep time)
         if self.pre_sleep_time <= current_time < self.sleep_time:
+            # Calculate progress through the pre-sleep hour (0.0 to 1.0)
             progress = (current_time - self.pre_sleep_time) / 3600  # 0 to 1 over one hour
             
-            # Gradually dim lights
-            brightness = 100 - (progress * 100)
+            # Gradually dim lights from 100% to 0%
+            brightness = int(100 - (progress * 100))
+            brightness = max(5, brightness)  # Keep minimum 5% brightness until sleep time
+            
+            # Set the light brightness
             self.light.set_brightness(brightness)
             
             # Every 10 minutes, show reminder
@@ -396,16 +430,23 @@ class SmartSleepAssistant:
                 time_to_sleep = (self.sleep_time - current_time) // 60
                 self.controller.display.display_two_lines(
                     "Sleep Reminder",
-                    f"{time_to_sleep} mins left"
+                    f"{time_to_sleep}min left ({brightness}%)"
                 )
                 # Gentle reminder sound
                 self.controller.actuators.buzzer_beep(660, 0.2)
                 time.sleep(0.2)
                 self.controller.actuators.buzzer_beep(440, 0.2)
-                time.sleep(3)  # Show message for 3 seconds
+                time.sleep(2)  # Show message for 2 seconds
+            
+            # For debug/simulation purposes, show brightness change more frequently
+            if self.use_simulated_time and int(time.time()) % 5 == 0:
+                print(f"Pre-sleep dimming: {brightness}% brightness, {(self.sleep_time - current_time)//60} minutes to sleep time")
         
         # At sleep time, remind user until phone is placed
         elif current_time >= self.sleep_time and not self.night_mode:
+            # Turn lights very low but not completely off until phone is placed
+            self.light.set_brightness(5)
+            
             self.controller.display.display_two_lines(
                 "Sleep Time!",
                 "Place phone on sensor"
@@ -448,6 +489,81 @@ class SmartSleepAssistant:
             if self.night_mode:
                 self.deactivate_night_mode()
     
+    def advance_to_next_transition(self):
+        """Cycle through key time points:
+        1. 20:30 - 1.5 hours before sleep time (pre-sleep)
+        2. 22:00 - Sleep time (night mode begins)
+        3. 04:30 - 1.5 hours before wake time (pre-wake)
+        4. 06:00 - Wake time (night mode ends)
+        """
+        if not self.use_simulated_time:
+            return
+        
+        # The four key time points in seconds since midnight
+        time_points = [
+            20 * 3600 + 30 * 60,  # 20:30 - Pre-sleep time
+            22 * 3600,            # 22:00 - Sleep time
+            4 * 3600 + 30 * 60,   # 04:30 - Pre-wake time
+            6 * 3600              # 06:00 - Wake time
+        ]
+        
+        # Labels for the time points
+        time_labels = [
+            "Pre-sleep time",
+            "Sleep time",
+            "Pre-wake time",
+            "Wake time"
+        ]
+        
+        # Advance to the next time point
+        next_point = (self.time_advancement_phase + 1) % 4
+        self.time_advancement_phase = next_point
+        
+        # Set the time to the selected point
+        self.set_simulated_time_from_seconds(time_points[next_point])
+        
+        # Display information about the time point
+        self.controller.display.display_two_lines(
+            f"{time_labels[next_point]}",
+            f"{self.format_time(time_points[next_point])}"
+        )
+        
+        # Additional context information based on the time point
+        if next_point == 0:  # Pre-sleep
+            print(f"Advancing to pre-sleep time: Light dimming begins")
+            self.light.set_brightness(100)  # Ensure lights are on before dimming begins
+        elif next_point == 1:  # Sleep time
+            print(f"Advancing to sleep time: Place phone on sensor")
+            # Make sure night mode isn't already active
+            self.night_mode = False
+        elif next_point == 2:  # Pre-wake
+            print(f"Advancing to pre-wake time: Gradual wake-up begins")
+            # Ensure night mode is active for pre-wake sequence
+            if not self.night_mode:
+                self.night_mode = True
+                self.light.set_brightness(0)  # Lights off in night mode
+        elif next_point == 3:  # Wake time
+            print(f"Advancing to wake time: Night mode ends")
+        
+        time.sleep(2)  # Show message for 2 seconds
+    
+    def set_simulated_time_from_seconds(self, seconds_since_midnight):
+        """Set the simulated time based on seconds since midnight
+        
+        Args:
+            seconds_since_midnight: Time in seconds since midnight
+        """
+        # Handle time wrapping (ensure it's within 24 hours)
+        seconds_since_midnight = seconds_since_midnight % (24*3600)
+        
+        # Convert to hours, minutes, seconds
+        hour = seconds_since_midnight // 3600
+        minute = (seconds_since_midnight % 3600) // 60
+        second = seconds_since_midnight % 60
+        
+        # Use existing function to set the time
+        self.set_simulated_time(hour, minute, second)
+    
     def run(self):
         """Main run loop for the Smart Sleep Assistant"""
         print("Smart Sleep Assistant running...")
@@ -460,8 +576,11 @@ class SmartSleepAssistant:
         if self.use_simulated_time:
             print("\nSIMULATION MODE ACTIVE")
             print(f"Time acceleration factor: {self.time_factor}x")
-            print("Use Button 1 (left) to increase time by 1 hour")
-            print("Use Button 2 (right) to speed up time (2x, 10x, 60x, 1x)")
+            print("Use Both Buttons: Cycle through time positions:")
+            print("  1. 1.5h before next transition")
+            print("  2. Beginning of next transition")
+            print("  3. 1.5h before subsequent transition")
+            print("Use Button 2 (right): Cycle speed (1x → 2x → 10x → 60x → 1x)")
             print("Initial simulated time:", self.format_time(self.get_current_time_seconds()))
         
         try:
@@ -472,15 +591,6 @@ class SmartSleepAssistant:
                 
                 # Simulation controls (when enabled)
                 if self.use_simulated_time:
-                    # Button 1 (left): Advance time by 1 hour
-                    if self.controller.sensors.is_button1_pressed():
-                        self.simulated_hour = (self.simulated_hour + 1) % 24
-                        self.controller.display.display_two_lines(
-                            "Time Advanced:", 
-                            f"{self.format_time(self.get_current_time_seconds())}"
-                        )
-                        time.sleep(0.5)  # Debounce
-                    
                     # Button 2 (right): Cycle time acceleration: 1x → 2x → 10x → 60x → 1x
                     if self.controller.sensors.is_button2_pressed():
                         if self.time_factor == 1:
@@ -492,8 +602,16 @@ class SmartSleepAssistant:
                         else:
                             self.set_time_factor(1)
                         time.sleep(0.5)  # Debounce
+                        
+                    # In simulation mode, use both buttons to advance to next transition
+                    if self.controller.sensors.is_button1_pressed() and self.controller.sensors.is_button2_pressed():
+                        self.advance_to_next_transition()
+                        time.sleep(0.5)  # Debounce
+                        # Wait for both buttons to be released
+                        while self.controller.sensors.is_button1_pressed() or self.controller.sensors.is_button2_pressed():
+                            time.sleep(0.01)
                 
-                # Check for coffee requests
+                # Check for coffee requests - Button 1 is now exclusively for coffee when not in combination
                 self.check_coffee_request()
                 
                 # Handle phone presence check and night mode activation
@@ -518,9 +636,10 @@ class SmartSleepAssistant:
                     if self.night_mode:
                         # Include SIM indicator if using simulated time
                         time_label = f"SIM {current_time_formatted}" if self.use_simulated_time else current_time_formatted
+                        wake_time_formatted = self.format_time(self.wake_time)
                         self.controller.display.display_two_lines(
                             f"Night Mode {time_label}",
-                            "Sleep well!"
+                            f"Wake: {wake_time_formatted}"
                         )
                     else:
                         sleep_time_formatted = self.format_time(self.sleep_time)
@@ -537,11 +656,11 @@ class SmartSleepAssistant:
         except KeyboardInterrupt:
             print("Smart Sleep Assistant stopped")
             # Cleanup
-            self.light.lights_on(100)
-            self.controller.actuators.window_close()
-            self.controller.actuators.door_close()
-            self.controller.actuators.rgb_off()
-            self.controller.actuators.buzzer_off()
+            #self.light.lights_on(100)
+            #self.controller.actuators.window_close()
+            #self.controller.actuators.door_close()
+            #self.controller.actuators.rgb_off()
+            #self.controller.actuators.buzzer_off()
 
 # Run the Smart Sleep Assistant if script is executed directly
 if __name__ == "__main__":

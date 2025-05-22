@@ -179,26 +179,35 @@ class SmartSleepAssistant:
             #         break
             # Check if phone is on the RFID sensor
             print('Time since last scan:', self.controller.rfid.time_since_last_scan())
-            if self.night_mode and self.controller.rfid.time_since_last_scan() > 5:
+            card_present = self.controller.rfid.check_card()
+            for _ in range(3):
+                if card_present:
+                    break
+                time.sleep(0.1)
+                card_present = self.controller.rfid.check_card()
+
+            if self.night_mode and not card_present:
                 print("Phone not detected on RFID sensor")
                 # Alert user to place phone on the RFID sensor
                 self.controller.display.display_two_lines("You cheater", "Place phone here")
                 self.controller.actuators.rgb_red()
                 self.controller.actuators.buzzer_beep(220, 0.5)
                 return False
-            if not self.controller.rfid.check_card() or self.controller.rfid.time_since_last_scan() > 5:
+            if not card_present and not self.night_mode:
                 print("Phone not detected on RFID sensor")
                 # Alert user to place phone on the RFID sensor
                 self.controller.display.display_two_lines("Time to sleep", "Place phone here")
                 self.controller.actuators.rgb_red()
                 self.controller.actuators.buzzer_beep(220, 0.5)
                 return False
-            else:
+            if card_present:
                 # Phone is present, verify it's authorized
                 # if self.controller.rfid.check_card():
                     # Phone detected and authorized - prepare for night mode
                 if not self.night_mode:
                     self.controller.display.display_two_lines("Phone detected", "Securing home...")
+                    self.controller.actuators.motor_forward()
+
                     self.controller.actuators.rgb_green()
                     self.controller.actuators.buzzer_beep(660, 0.2)
                     time.sleep(0.5)
@@ -286,6 +295,8 @@ class SmartSleepAssistant:
         time.sleep(0.5)  # Short delay between operations
         
         # Ensure the door is fully closed and locked
+        self.controller.actuators.servo_180_degrees()
+        time.sleep(0.5)
         self.controller.actuators.servo_0_degrees()
         time.sleep(0.5)  # Short delay between operations
         
@@ -485,9 +496,12 @@ class SmartSleepAssistant:
                 self.controller.actuators.window_open()
                 self.controller.actuators.led_on()  # Dim white light
                 
+                
+                
                 # Gradually increase light
                 brightness = progress * 100
-                self.light.set_brightness(brightness)
+                self.controller.actuators.rgb_white(brightness)
+                #self.light.set_brightness(brightness)
                 
                 # Display the wake-up progress
                 time_to_wake = (self.wake_time - current_time) // 60
@@ -684,7 +698,7 @@ if __name__ == "__main__":
     ssa = SmartSleepAssistant(use_simulated_time=True, time_factor=120)
     
     # Set initial simulated time (24-hour format)
-    ssa.set_simulated_time(hour=21, minute=50)  # Set to 21:28 PM
+    ssa.set_simulated_time(hour=20, minute=30)  # Set to 21:28 PM
     
     # Run the assistant
     ssa.run()

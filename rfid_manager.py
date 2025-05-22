@@ -50,17 +50,36 @@ class RFIDManager:
             #     return False
                 
             # If we got here, we successfully detected a card
-            self.rc522.PICC_IsNewCardPresent()
-            self.rc522.PICC_ReadCardSerial()
-            self.last_scan_time = time.time()
+            # self.rc522.PICC_IsNewCardPresent()
+            # self.rc522.PICC_ReadCardSerial()
+            # self.last_scan_time = time.time()
             
-            # Get card UID
-            self._process_card_data()
-            if self.last_card_uid_sum == 0:
-                print("Card UID sum is zero, ignoring")
-                return False
-            return True
+            # # Get card UID
+            # self._process_card_data()
+            # if self.last_card_uid_sum == 0:
+            #     print("Card UID sum is zero, ignoring")
+            #     self.rc522.deinit()
+            #     return False
+            # return True
+
+            if self.rc522.PICC_IsNewCardPresent():
+                #print("Is new card present!")
+                if self.rc522.PICC_ReadCardSerial() == True:
+                    print("Card UID:")
+                    #print(rc522.uid.uidByte[0 : rc522.uid.size])
+                    for i in self.rc522.uid.uidByte[0 : self.rc522.uid.size]:
+                        data = data + i
+                print(data)
+                if(data != 0):
+                    self.last_scan_time = time.time()
+                    data = 0
+                    return True
                 
+                #self.last_scan_time = time.time()
+                data = 0
+                return False
+              
+            return False
         except Exception as e:
             print(f"Error checking RFID card: {e}")
             return False

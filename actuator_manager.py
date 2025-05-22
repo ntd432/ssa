@@ -191,7 +191,7 @@ class ActuatorManager:
             speed: Motor speed (0-1023)
         """
         self.motor_a.duty(speed)
-        self.motor_b.duty(0)
+        self.motor_b.duty(1)
     
     def motor_backward(self, speed=600):
         """Run motor backward

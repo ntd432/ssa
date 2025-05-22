@@ -9,14 +9,22 @@ PIN_SERVO = 13      # Servo motor PWM
 PIN_NEOPIXEL = 26   # Neopixel RGB LEDs
 PIN_MOTOR_A = 19    # Motor driver input A
 PIN_MOTOR_B = 18    # Motor driver input B
+PIN_WINDOW = 5      # Window servo PWM pin (uses pin 5 as in your example)
 
 # Constants
 SERVO_FREQ = 50     # Standard servo frequency (50Hz)
+SERVO_FREQ_OFF = 0
 SERVO_0_DUTY = 25   # Duty cycle for 0° position
 SERVO_90_DUTY = 77  # Duty cycle for 90° position
 SERVO_180_DUTY = 128 # Duty cycle for 180° position
 
 NUM_PIXELS = 4      # Number of RGB LEDs in neopixel strip
+
+# Window servo constants
+WINDOW_FREQ_OFF = 0    # Standard servo frequency (50Hz)
+WINDOW_FREQ = 50
+WINDOW_CLOSED_DUTY = 100  # Duty cycle for closed window (from your example)
+WINDOW_OPEN_DUTY = 46     # Duty cycle for open window (from your example)
 
 class ActuatorManager:
     def __init__(self):
@@ -26,7 +34,7 @@ class ActuatorManager:
         self.buzzer.duty(0)  # Start with buzzer off
         
         self.servo = PWM(Pin(PIN_SERVO))
-        self.servo.freq(SERVO_FREQ)
+        self.servo.freq(SERVO_FREQ_OFF)
         
         self.neopixel = neopixel.NeoPixel(Pin(PIN_NEOPIXEL), NUM_PIXELS)
         
@@ -34,6 +42,11 @@ class ActuatorManager:
         self.motor_b = PWM(Pin(PIN_MOTOR_B, Pin.OUT), 10000)
         self.motor_a.duty(0)  # Start with motor stopped
         self.motor_b.duty(0)
+        
+        # Initialize window servo
+        self.window_servo = PWM(Pin(PIN_WINDOW))
+        self.window_servo.freq(WINDOW_FREQ_OFF)
+        self.window_servo.duty(WINDOW_CLOSED_DUTY)  # Start with window closed
         
         print("Actuator manager initialized")
     
@@ -89,6 +102,8 @@ class ActuatorManager:
         Args:
             angle: Angle in degrees (0-180)
         """
+        self.servo.freq(SERVO_FREQ)
+
         # Map angle to duty cycle
         if angle <= 0:
             self.servo.duty(SERVO_0_DUTY)
@@ -98,18 +113,19 @@ class ActuatorManager:
             # Linear interpolation
             duty = SERVO_0_DUTY + (angle / 180) * (SERVO_180_DUTY - SERVO_0_DUTY)
             self.servo.duty(int(duty))
-    
+        self.servo.freq(SERVO_FREQ_OFF)
+
     def servo_0_degrees(self):
         """Move servo to 0 degrees position"""
-        self.servo.duty(SERVO_0_DUTY)
+        self.servo_angle(0)
     
     def servo_90_degrees(self):
         """Move servo to 90 degrees position"""
-        self.servo.duty(SERVO_90_DUTY)
+        self.servo_angle(90)
     
     def servo_180_degrees(self):
         """Move servo to 180 degrees position"""
-        self.servo.duty(SERVO_180_DUTY)
+        self.servo_angle(180)
     
     # Neopixel RGB LED methods
     def rgb_set_all(self, r, g, b, brightness=100):
@@ -189,3 +205,27 @@ class ActuatorManager:
         """Stop the motor"""
         self.motor_a.duty(0)
         self.motor_b.duty(0)
+    
+    # Window methods
+    def window_open(self):
+        """Open the window"""
+        self.window_servo.freq(WINDOW_FREQ)
+        self.window_servo.duty(WINDOW_OPEN_DUTY)
+        time.sleep(1)
+        self.window_servo.freq(WINDOW_FREQ_OFF)
+
+    
+    def window_close(self):
+        """Close the window"""
+        self.window_servo.freq(WINDOW_FREQ)
+        self.window_servo.duty(WINDOW_CLOSED_DUTY)
+        time.sleep(1)
+        self.window_servo.freq(WINDOW_FREQ_OFF)
+    
+    def window_toggle(self):
+        """Toggle the window state"""
+        current_duty = self.window_servo.duty()
+        if current_duty == WINDOW_CLOSED_DUTY:
+            self.window_servo.duty(WINDOW_OPEN_DUTY)
+        else:
+            self.window_servo.duty(WINDOW_CLOSED_DUTY)
